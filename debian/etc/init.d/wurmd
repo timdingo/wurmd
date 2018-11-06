@@ -1,0 +1,76 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:		wurmd
+# Required-Start:	$remote_fs $syslog
+# Required-Stop:	$remote_fs $syslog
+# Default-Start:	2 3 4 5
+# Default-Stop:		
+# Short-Description:	wurmd
+### END INIT INFO
+
+set -e
+
+# /etc/init.d/wurmd: start and stop the wurmd daemon
+
+test -x /usr/sbin/wurmd || exit 0
+
+umask 022
+
+if test -f /etc/default/wurmd; then
+    . /etc/default/wurmd
+fi
+
+. /lib/lsb/init-functions
+
+if [ -n "$2" ]; then
+    WURMD_OPTS="$WURMD_OPTS $2"
+fi
+
+# Are we running from init?
+run_by_init() {
+    ([ "$previous" ] && [ "$runlevel" ]) || [ "$runlevel" = S ]
+}
+
+export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
+
+case "$1" in
+  start)
+	log_daemon_msg "Starting Wake Up Remote Machine daemon -wurmd" || true
+	if start-stop-daemon --start --quiet --oknodo --pidfile /var/run/wurmd.pid --exec /usr/sbin/wurmd -- $WURMD_OPTS; then
+	    log_end_msg 0 || true
+	else
+	    log_end_msg 1 || true
+	fi
+	;;
+  stop)
+	log_daemon_msg "Stopping Wake Up Remote Machine daemon -wurmd" || true
+	if start-stop-daemon --stop --quiet --oknodo --pidfile /var/run/wurmd.pid; then
+	    log_end_msg 0 || true
+	else
+	    log_end_msg 1 || true
+	fi
+	;;
+
+  restart)
+	log_daemon_msg "Restarting Wake Up Remote Machine daemon -wurmd" || true
+        if start-stop-daemon --stop --quiet --oknodo --pidfile /var/run/wurmd.pid; then
+            log_end_msg 0 || true
+        else
+            log_end_msg 1 || true
+        fi
+        if start-stop-daemon --start --quiet --oknodo --pidfile /var/run/wurmd.pid --exec /usr/sbin/wurmd -- $WURMD_OPTS; then
+            log_end_msg 0 || true
+        else
+            log_end_msg 1 || true
+        fi
+	;;
+  status)
+	status_of_proc -p /var/run/wurmd.pid /usr/sbin/wurmd wurmd && exit 0 || exit $?
+	;;
+  *)
+	log_action_msg "Usage: /etc/init.d/wurmd {start|stop|restart|status}" || true
+	exit 1
+esac
+
+exit 0

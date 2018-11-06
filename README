@@ -1,0 +1,11 @@
+Wurmd tries to solve the common problem when using Wake-On-Lan on your server/desktop/fridge/... that once it's asleep it has to be woken up again, which usually is a manual operation the user has to perform.
+Having the device go to sleep isn't the problem but having to fire up an additional program to wake the device back up can become a PITA after some time.
+
+The logical next step would be to incorporate WoL functionality into programs itself, but that's hardly feasable.
+Sure, you may get the Kodi crew to write code so if a file share isn't online they'll automagically sends a WoL packet, but that's limited to Kodi, right?
+What if you want to access your file server at home from your favorite file explorer but it's asleep again?
+
+Wurmd is a standalone program that listens on an interface in the background for initial connections to your configured devices.
+If it detects such a connection it'll send a WoL packet to the device to wake it up.
+What this means, practically, is that as long as wurmd is running on the host you can use any program to make a connection with a sleeping device and wurmd will wake it up while the program is busy execting its connection retry loop.
+It likely won't even know what happened when it is able to connect after retrying a couple of times.

@@ -1,0 +1,5 @@
+# Default settings for wurmd. This file is sourced by /bin/sh from
+# /etc/init.d/wurmd.
+
+# Options to pass to wurmd
+WURMD_OPTS="-i eth0 -c /etc/wurmd.conf -l /var/log/wurmd.log"
