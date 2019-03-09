@@ -1,7 +1,9 @@
 CC=gcc
+EABI=arm-linux-gnueabi
 prefix=/usr
-CCC=/opt/crosstool-ng/x-tools/arm-unknown-linux-gnueabi/bin/arm-unknown-linux-gnueabi-gcc
-SRC_FILES=`find -iname *.c | grep -v main.c`
+SRC_FILES=`find src -iname *.c | grep -v main.c`
+PCAP_VERSION=1.8.1
+PCAP_ARM=libpcap-$(PCAP_VERSION)
 
 all:
 	make x86
@@ -15,8 +17,20 @@ x86-debug:
 	mkdir -p bin/x86-64
 	$(CC) -g -Wall -Wextra -pedantic -lpcap $(SRC_FILES) src/main.c -o bin/x86-64/wurmd-debug
 
+arm-pcap:
+	wget http://www.tcpdump.org/release/libpcap-$(PCAP_VERSION).tar.gz
+	tar -zxvf libpcap-$(PCAP_VERSION).tar.gz
+	cd libpcap-$(PCAP_VERSION); \
+	CC=arm-linux-gnueabi-gcc ac_cv_linux_vers=2 ./configure --host=arm-linux --with-pcap=linux; \
+	make
+
+arm-debug:
+	mkdir -p bin/arm
+	$(EABI)-$(CC) $(SRC_FILES) src/main.c -L$(PCAP_ARM)/ -I$(PCAP_ARM)/ -Wall -Wextra -pedantic -static -lpcap -o bin/arm/wurmd
+
 arm:
-	$(CCC) src/functions.c src/main.c -L/opt/crosstool-ng/x-tools/arm-unknown-linux-gnueabi/lib/ -I/opt/crosstool-ng/x-tools/arm-unknown-linux-gnueabi/include/ -Wall -Wextra -pedantic -static -lpcap -o bin/arm/wurmd
+	make arm-debug
+	$(EABI)-strip bin/arm/wurmd
 
 install:
 	install -m 0755 bin/x86-64/wurmd $(prefix)/sbin/
@@ -31,5 +45,6 @@ uninstall:
 	rm debian/etc/init.d/wurmd /etc/init.d/
 
 clean:
-	rm -r bin/
-
+	rm -rf bin
+	rm -rf libpcap-$(PCAP_VERSION)
+	rm -rf libpcap-$(PCAP_VERSION).tar.gz
