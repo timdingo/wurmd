@@ -1,11 +1,11 @@
 static char version[]=
-"\nwurmd.c: v20181106 Timothy Demulder <timothy@syphzero.net>, https://github.com/timdingo/wurmd/\n";
+"Version 20190401 - Timothy Demulder <timothy@syphzero.net> - https://github.com/timdingo/wurmd/";
 static char usage[] =
-"usage: wurmd [-o <mac>] [-i <ifname>] [-fvd] [-l <config file>] -c <config file>\n";
+"usage: wurmd [-o <mac>] [-i <ifname>] [-fvd] [-l <config file>] -c <config file>";
 static char lusage[] =
-"\n  This daemon generates and transmits Wake-On-Lan (WoL) packets \n"
-"  to configured hosts based on networking events in an attempt to\n"
-"  wake up sleeping machines when they're actually needed.\n"
+"This daemon generates and transmits Wake-On-Lan (WoL) packets\n"
+"to configured hosts based on networking events in an attempt to\n"
+"wake up sleeping machines when they're actually needed.\n"
 "\nOptions:\n"
 "	-o mac		Send one WoL packet to MAC address, once.\n"
 "	-i ifname       Use interface IFNAME instead of the system's default.\n"
@@ -14,11 +14,11 @@ static char lusage[] =
 "	-d		Be even more verbose (DEBUG)\n"
 "	-f		Don't run in the background\n"
 "	-l logfile	Use the log file LOGFILE\n"
-"			(default: /var/log/wurmd.log)\n";
+"			(default: /var/log/wurmd.log)";
 /*
  * To the nice people who wrote libpcap: thanks.
  * 
- * Copyright 2018, Timothy Demulder <timothy@syphzero.net>
+ * Copyright 2019, Timothy Demulder <timothy@syphzero.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ static char lusage[] =
  */
 
 #include <ctype.h>
+#include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,9 +69,9 @@ int main(int argc, char *argv[])
 			verbose=1;
 			break;
 		case 'h':
-            printf("%s", usage);
-            printf("%s", lusage);
-            printf("%s", version);
+            printf("%s\n", usage);
+            printf("\n%s\n", lusage);
+            printf("%s\n", version);
 			return 0;
 		case 'i':
             inet_device=optarg;
@@ -123,16 +124,18 @@ int main(int argc, char *argv[])
 
     single_instance_check();
 
+    /* log file check before daemonizing */
+    FILE *fp;
+    fp = fopen(logfile, "a+");
+    if(fp==NULL)
+    {
+        fprintf(stderr, "Can't open file %s for appending: %s.\n", logfile, strerror(errno));
+        return(1);
+    }
+
     /* config file check */
     if (cfg_file == NULL)
         eprintf("%s needs a config file to run.\n%s", argv[0], usage);
-
-    /* log file check before daemonizing */
-	FILE *fp;
-	fp = fopen(logfile, "a+");
-    if(fp==NULL)
-        eprintf("Can't open log file %s for appending.\n", logfile);
-	fclose(fp);
 
     if (background)
         daemonize();
@@ -146,13 +149,13 @@ int main(int argc, char *argv[])
     {
         inet_device = pcap_lookupdev(errbuf);
         if (inet_device == NULL)
-			eprintf("Couldn't find default device: %s\n", errbuf);
-        vprintf("No interface option provided, using %s\n", inet_device);
+			eprintf("Couldn't find default device: %s", errbuf);
+        vprintf("No interface option provided, using %s", inet_device);
 	}
 
     bpf_u_int32 mask, net;
     if (pcap_lookupnet(inet_device, &net, &mask, errbuf) == -1)
-		eprintf("Couldn't get ip address for device %s\n", errbuf);
+		eprintf("Couldn't get ip address for device %s", errbuf);
 
     char *pcap_filter = create_pcap_filter(inet_device);
 
@@ -177,8 +180,8 @@ int main(int argc, char *argv[])
         eprintf("Couldn't install filter %s: %s\n",
             pcap_filter, pcap_geterr(pcap_session_handle));
 
-    vprintf("Working the magic on %s\n", inet_device);
-    dprintf("Pcap filter: %s\n", pcap_filter);
+    vprintf("Working the magic on %s", inet_device);
+    dprintf("Pcap filter: %s", pcap_filter);
     free(pcap_filter); // not needed any more: we've got the compiled version
 
     const int packet_capture_amount = -1; // unlimited
