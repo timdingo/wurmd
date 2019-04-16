@@ -182,26 +182,24 @@ int main(int argc, char *argv[])
     signal(SIGINT, signal_handler);
 
     char errbuf[PCAP_ERRBUF_SIZE] = "";
+    pcap_if_t *dev_list = {0};
 
     if (str_empty(inet_device))
     {
         inet_device = s_malloc(IFNAMSIZ);
-        strcpy(inet_device, pcap_lookupdev(errbuf));
+        if(pcap_findalldevs(&dev_list, errbuf) != 0)
+            eprintf(MSG_COULD_NOT_ITERATE_DEVICES, errbuf);
+        // TODO: handle no devices at all
+        strcpy(inet_device, dev_list->next->name);
 
         if (str_empty(inet_device))
-        {
-            free(inet_device);
             eprintf("Couldn't find default device: %s", errbuf);
-        }
         vprintf("No interface option provided, using %s", inet_device);
     }
 
     bpf_u_int32 mask, net;
     if (pcap_lookupnet(inet_device, &net, &mask, errbuf) == -1)
-    {
-        free(inet_device);
         eprintf("Couldn't get ip address for device %s", errbuf);
-    }
 
     char * pcap_filter = create_pcap_filter(inet_device);
 
@@ -213,30 +211,21 @@ int main(int argc, char *argv[])
         errbuf);
 
     if (pcap_session_handle == NULL)
-    {
-        free(inet_device);
         eprintf("Couldn't open device %s: %s\n", inet_device, errbuf);
-    }
 
     struct bpf_program pcap_filter_bin;
     memset(&pcap_filter_bin, 0, sizeof(struct bpf_program));
 
     if (pcap_compile(pcap_session_handle, &pcap_filter_bin, pcap_filter, 0, net) == -1)
-    {
-        free(inet_device);
         eprintf("Couldn't parse filter %s: %s\n",
             pcap_filter, pcap_geterr(pcap_session_handle));
-    }
 
     dprintf("Pcap filter: %s", pcap_filter);
     free(pcap_filter);
 
     if (pcap_setfilter(pcap_session_handle, &pcap_filter_bin) == -1)
-    {
-        free(inet_device);
         eprintf("Couldn't install filter %s: %s\n",
             pcap_filter, pcap_geterr(pcap_session_handle));
-    }
 
     vprintf("Working the magic on %s", inet_device);
 
