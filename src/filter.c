@@ -24,13 +24,13 @@
 #include "include/filter.h"
 #include "include/inetutils.h"
 #include "include/safermem.h"
+#include "include/system.h"
 
 extern char *cfg_file;
 
-char *create_pcap_filter(char *dev)
+char * create_pcap_filter(char *dev)
 {
-    pcap_if_t *pcap_devices, *devices_it;
-    pcap_addr_t *addr;
+    pcap_if_t *pcap_devices = s_malloc(sizeof(pcap_if_t));
     char errbuf[PCAP_ERRBUF_SIZE];
 
     char *pcap_filter = s_malloc(s_strlen(PCAP_ARP_AND));
@@ -45,57 +45,51 @@ char *create_pcap_filter(char *dev)
     if (pcap_findalldevs(&pcap_devices, errbuf))
         eprintf(MSG_FAILED_PCAP_FINDDEVS, errbuf);
 
-    devices_it = pcap_devices;
     short int counter=0;
 
-    while(devices_it != NULL)
+    for (pcap_if_t *d_it=pcap_devices; d_it!=NULL; d_it=d_it->next)
     {
-        if (*devices_it->name == *dev)
+        if (*d_it->name != *dev)
+            continue;
+
+        for (pcap_addr_t * a_it = d_it->addresses; a_it != NULL; a_it = a_it->next)
         {
-            addr = devices_it->addresses;
-            while (addr != NULL)
+            if(a_it->addr->sa_family != AF_INET)
+                continue; /* we're purposefully ignoring anything except IPv4 */
+
+            if (counter)
             {
-                if(addr->addr->sa_family == AF_INET)
-                {
-                    if (counter)
-                    {
-                        pcap_filter = s_strcat(&pcap_filter, PCAP_OR);
-                        pcap_filter_udp = s_strcat(&pcap_filter_udp,PCAP_OR);
-                        pcap_filter_syn = s_strcat(&pcap_filter_syn, PCAP_OR);
-                    }
-
-                    char tcp4_address_buffer[INET_ADDRSTRLEN];
-                    inet_ntop(AF_INET,&(((struct sockaddr_in*)addr->addr)->sin_addr),
-                        tcp4_address_buffer, INET_ADDRSTRLEN);
-
-                    char *tcp4_address = tcp4_address_buffer;
-                    validate_inet_addr(tcp4_address);
-
-                    pcap_filter_syn = s_strcat(&pcap_filter_syn, PCAP_SRC);
-                    pcap_filter_syn = s_strcat(&pcap_filter_syn, tcp4_address);
-                    pcap_filter_udp = s_strcat(&pcap_filter_udp, PCAP_AND_SRC);
-                    pcap_filter_udp = s_strcat(&pcap_filter_udp, tcp4_address);
-
-                    char *tcp4_address_hex = tcp4_dec_to_hex(tcp4_address);
-                    pcap_filter = s_strcat(&pcap_filter, PCAP_ETHER_28_4);
-                    pcap_filter = s_strcat(&pcap_filter, tcp4_address_hex);
-
-                    free(tcp4_address_hex);
-                    counter++;
-                }
-                addr = addr->next;
+                pcap_filter = s_strcat(&pcap_filter, PCAP_OR);
+                pcap_filter_udp = s_strcat(&pcap_filter_udp,PCAP_OR);
+                pcap_filter_syn = s_strcat(&pcap_filter_syn, PCAP_OR);
+                counter++;
             }
+
+            char tcp4_address_buffer[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &(((struct sockaddr_in*)a_it->addr)->sin_addr),
+                tcp4_address_buffer, INET_ADDRSTRLEN);
+
+            char *tcp4_address = tcp4_address_buffer;
+            validate_inet_addr(tcp4_address);
+
+            pcap_filter_syn = s_strcat(&pcap_filter_syn, PCAP_SRC);
+            pcap_filter_syn = s_strcat(&pcap_filter_syn, tcp4_address);
+            pcap_filter_udp = s_strcat(&pcap_filter_udp, PCAP_AND_SRC);
+            pcap_filter_udp = s_strcat(&pcap_filter_udp, tcp4_address);
+
+            char *tcp4_address_hex = tcp4_dec_to_hex(tcp4_address);
+            pcap_filter = s_strcat(&pcap_filter, PCAP_ETHER_28_4);
+            pcap_filter = s_strcat(&pcap_filter, tcp4_address_hex);
+
+            free(tcp4_address_hex);
         }
-        devices_it = devices_it->next;
     }
     pcap_freealldevs(pcap_devices);
 
     // READING THE CONFIG FILE
-    static short int read_buffer = 96;
-    char *cfg_line, *tcp4_address, *ethernet_address;
-    cfg_line = s_malloc(read_buffer);
-    tcp4_address = s_malloc(15);
-    ethernet_address = s_malloc(18);
+    char * cfg_line = s_malloc(CONFIG_READ_BUFFER);
+    char * tcp4_address = s_malloc(TCP4ADDRSIZ);
+    char * ethernet_address = s_malloc(ARPADDRSIZ);
 
     FILE *fp;
     fp = fopen(cfg_file, "r");
@@ -109,7 +103,7 @@ char *create_pcap_filter(char *dev)
     short int config_entry = 0;
 
     /* read from config file */
-    while(fgets(cfg_line, read_buffer, fp) != NULL)
+    while(fgets(cfg_line, CONFIG_READ_BUFFER, fp) != NULL)
     {
         if (!strncmp(cfg_line, "#", 1) || !strncmp(cfg_line, "\n", 1))
             // skip commented and new lines
@@ -157,6 +151,8 @@ char *create_pcap_filter(char *dev)
     free(cfg_line);
     free(tcp4_address);
     free(ethernet_address);
+    free(pcap_filter_udp);
+    free(pcap_filter_syn);
 
     return pcap_filter;
 }

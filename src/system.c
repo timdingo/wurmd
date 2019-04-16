@@ -21,17 +21,17 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <linux/limits.h>
 #include <sys/stat.h>
 
 #include "include/errors.h"
 #include "include/safermem.h"
 #include "include/system.h"
 
-void daemonize()
+void daemonize(void)
 {
     pid_t pid, sid;
-    char *curdir;
-    curdir = getcwd(NULL, 0);
+    char * curdir = getcwd(NULL, 0);
     pid = fork();
     if (pid < 0)
     {
@@ -50,39 +50,40 @@ void daemonize()
     if ((chdir(curdir)) < 0)
     {
         eprintf(MSG_CHANGE_CURDIR, curdir);
-        exit(EXIT_FAILURE);
     }
     dprintf(MSG_CURDIR, curdir);
-    free(curdir);
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
 }
 
-void single_instance_check()
+char * get_lockfile(void)
 {
-    char *lockfile;
-    int fd;
-	struct flock fdfl;
-	fdfl.l_type = F_WRLCK;
-	fdfl.l_whence = SEEK_SET;
-    fdfl.l_start = 0;
-    fdfl.l_len = 0;
-    char *bspth = getenv("HOME");
-
+    char * bspth = getenv("HOME");
     if (bspth == NULL || bspth[0] != '/')
         eprintf(MSG_NO_HOMEDIR);
-
-    lockfile = s_malloc((sizeof(char)*strlen(bspth)) + (sizeof("/"LCKFD)));
-
+    char * lockfile = s_malloc(strlen(bspth) + (sizeof("/"LCKFD)));
     strcpy(lockfile, bspth);
-    strcat(lockfile, "/"LCKFD);
-    fd = open(lockfile, O_RDWR|O_CREAT, 0600);
+    s_strcat(&lockfile, "/"LCKFD);
+    return lockfile;
+}
 
+int set_lock(char * lockfile)
+{
+    int fd;
+    struct flock fdfl;
+    fdfl.l_type = F_WRLCK;
+    fdfl.l_whence = SEEK_SET;
+    fdfl.l_start = 0;
+    fdfl.l_len = 0;
+
+    fd = open(lockfile, O_RDWR|O_CREAT, 0600);
     if (fd == -1)
         eprintf(MSG_NO_LOCKFILE);
 
     if (fcntl(fd, F_SETLK, &fdfl) == -1)
         eprintf(MSG_NOT_SINGLE_INSTANCE);
+
+    return fd;
 }
 
 void signal_handler(int sig)

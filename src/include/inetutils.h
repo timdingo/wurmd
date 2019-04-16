@@ -19,6 +19,8 @@
 
 #include<stdlib.h>
 #include <arpa/inet.h>
+#include <pcap/pcap.h>
+#include <regex.h>
 
 #define NTOHL(x)	(x) = ntohl(x)
 #define AR_TPA(ap)	(((const u_char *)((ap)+1))+2*(ap)->ar_hln+(ap)->ar_pln)
@@ -27,15 +29,15 @@
 #define PCAP_VALIDATE_MAC_ADDRESS "^\\([0-9a-fA-F]\\{2\\}:\\)\\{5\\}[0-9a-fA-F]\\{2\\}$"
 
 int send_packet(unsigned char *packet);
-char *tcp4_dec_to_hex(const char *tcp4_address);
-char *get_target_from_packet(
-    u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet);
-char *get_ethernet_address_associated_with_target(char *input);
-unsigned char *make_wol_payload(char *aeaddr);
-void send_wol_packet(char *ethernet_address);
-void validate_ethernet_address(char *ethernet_address);
-void validate_inet_addr(char *taddr);
+char * tcp4_dec_to_hex(const char *tcp4_address);
+char * get_target_from_packet(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet);
+char * get_ethernet_address_associated_with_target(const char * input);
+unsigned char * make_wol_payload(char * aeaddr);
+void send_wol_packet(char * ethernet_address);
+void validate_ethernet_address(const char * ethernet_address);
+void validate_inet_addr(const char * taddr);
 char *intoa(u_int32_t addr);
+int str_empty(const char * string);
 
 typedef struct nbnshdr
 {

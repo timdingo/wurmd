@@ -26,32 +26,41 @@
 #include <netinet/udp.h>
 #include <netinet/if_ether.h>
 #include <net/if_arp.h>
-#include <pcap/pcap.h>
 
 #include "include/inetutils.h"
 #include "include/errors.h"
 #include "include/safermem.h"
+#include "include/system.h"
 
 extern char *cfg_file;
 
-void validate_ethernet_address(char *ethernet_address)
+void validate_ethernet_address(const char * ethernet_address)
 {
     regex_t re;
+
     if(regcomp(&re, PCAP_VALIDATE_MAC_ADDRESS, 0) != 0)
+    {
+        regfree(&re);
         eprintf(MSG_FAILED_REGEX_COMPILE);
+    }
+
     if(regexec(&re, ethernet_address, 0, NULL, 0) != 0)
+    {
+        regfree(&re);
         eprintf(MSG_INVALID_ETHERNET, ethernet_address);
+    }
+
     regfree(&re);
 }
 
-void validate_inet_addr(char *inet_address)
+void validate_inet_addr(const char * inet_address)
 {
     struct in_addr tcstr;
     if (!inet_aton(inet_address, &tcstr))
         eprintf(MSG_INVALID_IP, inet_address);
 }
 
-char *intoa(u_int32_t addr) /* Stolen from tcpdump */
+char * intoa(u_int32_t addr) /* Stolen from tcpdump */
 {
     register char *cp;
     register u_int byte;
@@ -71,7 +80,7 @@ char *intoa(u_int32_t addr) /* Stolen from tcpdump */
             *--cp = byte % 10 + '0';
             byte /= 10;
             if (byte > 0)
-                    *--cp = byte + '0';
+                *--cp = byte + '0';
         }
         *--cp = '.';
         addr >>= 8;
@@ -80,20 +89,20 @@ char *intoa(u_int32_t addr) /* Stolen from tcpdump */
     return cp + 1;
 }
 
-char *get_target_from_packet(u_char *args, const struct pcap_pkthdr *pkthdr, const u_char *packet)
+char * get_target_from_packet(u_char *args, const struct pcap_pkthdr *pkthdr, const u_char *packet)
 {
     UNUSED_ARG(args);
     UNUSED_ARG(pkthdr);
 
     char *nmptr;
     const struct ether_header *etherhdr;
-    etherhdr = (struct ether_header*)(packet);
-    const struct ip *ip;
-    ip = (struct ip*)(packet + sizeof(struct ether_header));
-    const struct udphdr *udphdr;
-    udphdr = (struct udphdr*)(packet + sizeof(struct ether_header) + sizeof(struct ip));
-    const nbnshdr_t *nbnshdr;
-    nbnshdr = (struct nbnshdr*)(packet + sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr));
+    etherhdr = (struct ether_header *)(packet);
+    const struct ip * ip;
+    ip = (struct ip *)(packet + sizeof(struct ether_header));
+    const struct udphdr * udphdr;
+    udphdr = (struct udphdr *)(packet + sizeof(struct ether_header) + sizeof(struct ip));
+    const nbnshdr_t * nbnshdr;
+    nbnshdr = (struct nbnshdr *)(packet + sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr));
 
     /* Based on the PCAP filter we define 3 scenarios here:
      *  - ARP packet with ARP OP code of 256
@@ -103,13 +112,18 @@ char *get_target_from_packet(u_char *args, const struct pcap_pkthdr *pkthdr, con
 
     if (ntohs(etherhdr->ether_type) == ETHERTYPE_ARP)
     {
-        struct arphdr *arp_header = (struct arphdr*)(packet + sizeof(struct ether_header));
-        if(arp_header->ar_op == 256)
+        struct arphdr* arp_header = (struct arphdr*)(packet + sizeof(struct ether_header));
+        if (arp_header->ar_op == 256)
         {
             u_int32_t addr;
             memcpy(&addr, AR_TPA(arp_header), sizeof(addr));
             nmptr=intoa(addr);
             vprintf(MSG_ARP_REQUEST, nmptr);
+        }
+        else
+        {
+            /* satisfying static analysis on above conditional and nmptr */
+            exit(-1);
         }
     }
     else if (ip->ip_p == IPPROTO_UDP && ntohs(udphdr->dest) == 137 && nbnshdr->opcode == 4097)
@@ -153,7 +167,7 @@ char *get_target_from_packet(u_char *args, const struct pcap_pkthdr *pkthdr, con
     return nmptr;
 }
 
-char *tcp4_dec_to_hex(const char *tcp4_dec)
+char * tcp4_dec_to_hex(const char *tcp4_dec)
 {
     char *tcp4_hex = s_malloc(11);
     uint tcp4_oct_0, tcp4_oct_1, tcp4_oct_2, tcp4_oct_3;
@@ -163,24 +177,22 @@ char *tcp4_dec_to_hex(const char *tcp4_dec)
     return tcp4_hex;
 }
 
-char *get_ethernet_address_associated_with_target(char *input)
+char * get_ethernet_address_associated_with_target(const char * input)
 {
-    if (*input == '\0' || input == NULL)
+    if (str_empty(input))
         eprintf("Comparing something to nothing is no better than dividing by 0!\n");
 
-    FILE *fp;
-    char *bfr,*tcp4_address,*ethernet_address,*nbaddr;
-    static int read_buffer = 96; // ipv4 + mac + netbios name
-    bfr = s_malloc(read_buffer);
-    tcp4_address = s_malloc(16);
-    ethernet_address = s_malloc(18);
-    nbaddr = s_malloc(17);
+    char * bfr = s_malloc(CONFIG_READ_BUFFER);
+    char * tcp4_address = s_malloc(TCP4ADDRSIZ);
+    char * ethernet_address = s_malloc(ARPADDRSIZ);
+    char * nbaddr = s_malloc(NBADDRSIZE);
+    FILE * fp;
 
     fp = fopen(cfg_file, "r");
     if(fp == NULL)
         eprintf(MSG_FAILED_CONFIG_OPEN, cfg_file);
 
-    while(fgets(bfr, read_buffer, fp) != NULL)
+    while(fgets(bfr, CONFIG_READ_BUFFER, fp) != NULL)
     {
         if (!strncmp(bfr, "#", 1) || !strncmp(bfr, "\n", 1))
             continue;
@@ -192,14 +204,13 @@ char *get_ethernet_address_associated_with_target(char *input)
             break;
     }
     fclose(fp);
-
     free(bfr);
     free(tcp4_address);
     free(nbaddr);
     return ethernet_address;
 }
 
-unsigned char *make_wol_payload(char *aeaddr)
+unsigned char * make_wol_payload(char * aeaddr)
 {
     unsigned char *payload = s_malloc(102); //6+(16*6) bytes
     struct ether_addr *ethernet_address;
@@ -241,4 +252,9 @@ int send_packet(unsigned char *packet)
     }
     close(socket_ptr);
     return 0;
+}
+
+int str_empty(const char * string)
+{
+    return (string == NULL || (string != NULL && string[0] == '\0'));
 }

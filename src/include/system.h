@@ -18,9 +18,17 @@
 #define SYSTEM_H
 
 #define LCKFD ".wurmd.lck"
+#define CONFIG_READ_BUFFER 96 // ipv4 + mac + netbios name
+#define IFNAMSIZ 16 // From Linux' include/uapi/linux/if.h
+#define TCP4ADDRSIZ 15
+#define NBADDRSIZE 17
+#define ARPADDRSIZ 18
+#define LOGFILE "/var/log/wurmd.log"
 
-void daemonize();
-void single_instance_check();
+
+void daemonize(void);
+char * get_lockfile(void);
+int set_lock(char * lockfile);
 void signal_handler(int sig);
 
 #endif

@@ -20,12 +20,12 @@
 #include "include/safermem.h"
 #include "include/errors.h"
 
-void *s_malloc(size_t size)
+void * s_malloc(size_t size)
 {
     /* NOTE: C std currently guarantees sizeof(char) to be 1.
      *       and nearly every s_malloc() called assumes so. */
     void *ptr = malloc(size);
-    if (ptr == NULL)
+    if (ptr == NULL) // check this: void* compare to NULL ?!
         eprintf(MSG_MALLOC_FAILED);
     return ptr;
 }
@@ -35,7 +35,7 @@ size_t s_strlen(const char *string)
     return (strlen(string) + 1);
 }
 
-char *s_strcat(char **target, char *append)
+char * s_strcat(char **target, char *append)
 {
     *target = realloc(*target, strlen(*target) + s_strlen(append));
     if (target == NULL)

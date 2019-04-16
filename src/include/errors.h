@@ -24,6 +24,7 @@
 #define MSG_CHANGE_CURDIR "Could not change working directory to %s."
 #define MSG_CURDIR "Current working dir: %s."
 #define MSG_NO_HOMEDIR "No home directory (or a bad one) defined."
+#define MSG_LOCKFILE "Lockfile: %s."
 #define MSG_NO_LOCKFILE "Can't create a lockfile."
 #define MSG_NOT_SINGLE_INSTANCE "Another instance is already running."
 #define MSG_COULD_NOT_CONVERT_ADDRESS "Couldn't convert address %s."
@@ -34,45 +35,45 @@
 #define MSG_NO_BROADCAST "couldn't broadcast WoL for %s."
 #define MSG_WOL_BROADCAST "WoL broadcast for %s."
 #define MSG_FAILED_REGEX_COMPILE "Could not compile regex."
-#define MSG_INVALID_ETHERNET "%s is not a valid mac address."
-#define MSG_INVALID_IP "%s is not a valid IP address."
+#define MSG_INVALID_ETHERNET "Not a valid mac address: %s."
+#define MSG_INVALID_IP "Not a valid IP address: %s."
 #define MSG_MALLOC_FAILED "Couldn't assign needed memory."
 #define MSG_SIGNAL_SIGINT "SIGINT detected, shutting down."
 #define MSG_FAILED_PCAP_FINDDEVS "Couldn't iterate over all network devices: %s."
 #define MSG_FAILED_CONFIG_OPEN "Can't open configuration file %s."
 #define MSG_FAILED_SOCK_INIT "Couldn't create socket."
 #define MSG_FAILED_BCAST_FLAG "Couldn't set broadcast flag on socket."
+#define MSG_ARGUMENT_CANNOT_BE_EMPTY "Value for argument -%s cannot be an empty string.\n"
 
-extern char *logfile;
+extern char *cfg_file;
+extern char *log_file;
 extern short int verbose, debug, background;
 
 #define eprintf(format, ...)\
     do{\
-        fprintf(stderr, format,##__VA_ARGS__);\
+        fprintf(stderr, format, ##__VA_ARGS__);\
         fprintf(stderr, "\n");\
-        FILE *ptr;\
-        ptr=fopen(logfile,"a+");\
+        FILE *ptr=fopen(log_file, "a+");\
         time_t tt=time(NULL);\
         char *t=ctime(&tt);\
         t[strlen(t)-1]=0;\
-        fprintf(ptr,"%s - Error: ",t);\
+        fprintf(ptr,"%s - Error: ", t);\
         fprintf(ptr,format,##__VA_ARGS__);\
         fprintf(ptr, "\n");\
         fclose(ptr);\
-        exit(1);\
+        exit(-1);\
     }\
     while(0)
 
 #define vprintf(format, ...)\
     do{\
-        if(verbose){\
+        if(verbose||debug){\
             if (!background) {\
                 fprintf(stdout,format,##__VA_ARGS__);\
                 fprintf(stdout, "\n");\
             }\
             else {\
-                FILE *ptr;\
-                ptr=fopen(logfile,"a+");\
+                FILE *ptr=fopen(log_file,"a+");\
                 time_t tt=time(NULL);\
                 char *t=ctime(&tt);\
                 t[strlen(t)-1]=0;\
@@ -93,8 +94,7 @@ extern short int verbose, debug, background;
                 fprintf(stdout, "\n");\
             }\
             else {\
-                FILE *ptr;\
-                ptr=fopen(logfile,"a+");\
+                FILE *ptr=fopen(log_file,"a+");\
                 time_t tt=time(NULL);\
                 char *t=ctime(&tt);\
                 t[strlen(t)-1]=0;\
