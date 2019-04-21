@@ -131,30 +131,30 @@ char * get_target_from_packet(u_char *args, const struct pcap_pkthdr *pkthdr, co
         /* nbnshdr->opcode should be 0x0001000000000001 for a NB name request */
         unsigned char databuf,datanbuf;
         char nbnsaddrbuf[16] = "";
-        int idx=0;
+        int idx = 0;
         const unsigned char *nbnsdata = (packet + sizeof(struct ether_header) + sizeof(struct ip) +
             sizeof(struct udphdr) + sizeof(struct nbnshdr) - 1);
         for(;;)
         {
             databuf = *nbnsdata;
-            if (databuf=='\0' || databuf < 'A' || databuf > 'Z' )
+            if (databuf == '\0' || databuf < 'A' || databuf > 'Z' )
                 break;
-            databuf-='A';
-            datanbuf=databuf<<4;
+            databuf -= 'A';
+            datanbuf = databuf << 4;
             nbnsdata++;
             databuf = *nbnsdata;
             if (databuf=='\0' || databuf < 'A' || databuf > 'Z' )
                 eprintf(MSG_MALFORMED_NBNS);
-            databuf-='A';
+            databuf -= 'A';
             datanbuf= databuf | datanbuf;
             nbnsdata++;
-            if (datanbuf==32)
+            if (datanbuf == 32)
                 continue;
             if (idx <= NBNS_NAME_MAX)
-                nbnsaddrbuf[idx++]=datanbuf;
+                nbnsaddrbuf[idx++] = datanbuf;
         }
-        nbnsaddrbuf[idx]='\0';
-        nmptr=nbnsaddrbuf;
+        nbnsaddrbuf[idx] = '\0';
+        nmptr = nbnsaddrbuf;
         vprintf(MSG_NBNS_REQUEST, nmptr);
     }
     else
@@ -167,9 +167,9 @@ char * get_target_from_packet(u_char *args, const struct pcap_pkthdr *pkthdr, co
     return nmptr;
 }
 
-char * tcp4_dec_to_hex(const char *tcp4_dec)
+char * tcp4_dec_to_hex(const char * tcp4_dec)
 {
-    char *tcp4_hex = s_malloc(11);
+    char *tcp4_hex = s_malloc(TCP4ADDRSIZHEX);
     uint tcp4_oct_0, tcp4_oct_1, tcp4_oct_2, tcp4_oct_3;
     if (sscanf(tcp4_dec, "%u.%u.%u.%u", &tcp4_oct_0, &tcp4_oct_1, &tcp4_oct_2, &tcp4_oct_3) != 4)
         eprintf(MSG_COULD_NOT_CONVERT_ADDRESS, tcp4_dec);

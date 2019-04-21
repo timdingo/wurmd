@@ -92,3 +92,15 @@ void signal_handler(int sig)
     vprintf(MSG_SIGNAL_SIGINT);
 	exit(0);
 }
+
+pid_t get_pid_of_process(char * process)
+{
+#define PID_STR 5
+
+    pid_t pid = -1;
+    char * process_line = s_malloc(PID_STR);
+    FILE * cmd = popen(process, "r");
+    fgets(process_line, PID_STR, cmd);
+    pid = (int) strtoul(process_line, NULL, PID_STR);
+    return pid;
+}

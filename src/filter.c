@@ -65,11 +65,8 @@ char * create_pcap_filter(char *dev)
                 counter++;
             }
 
-            char tcp4_address_buffer[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &(((struct sockaddr_in*)a_it->addr)->sin_addr),
-                tcp4_address_buffer, INET_ADDRSTRLEN);
-
-            char *tcp4_address = tcp4_address_buffer;
+            char tcp4_address[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &(((struct sockaddr_in*)a_it->addr)->sin_addr), tcp4_address, INET_ADDRSTRLEN);
             validate_inet_addr(tcp4_address);
 
             pcap_filter_syn = s_strcat(&pcap_filter_syn, PCAP_SRC);
