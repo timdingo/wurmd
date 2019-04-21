@@ -233,8 +233,7 @@ int send_packet(unsigned char *packet)
     if (socket_ptr < 0)
         eprintf(MSG_FAILED_SOCK_INIT);
     int enbcast = 1;
-    int ret = setsockopt(socket_ptr,SOL_SOCKET,SO_BROADCAST, &enbcast, sizeof(enbcast));
-    if (ret)
+    if (setsockopt(socket_ptr,SOL_SOCKET,SO_BROADCAST, &enbcast, sizeof(enbcast)))
     {
         close(socket_ptr);
         eprintf(MSG_FAILED_BCAST_FLAG);
@@ -244,7 +243,7 @@ int send_packet(unsigned char *packet)
     bcast_sockaddr.sin_family = AF_INET;
     inet_pton(AF_INET, bcastinet , &bcast_sockaddr.sin_addr);
     bcast_sockaddr.sin_port = htons(portnr);
-    ret = sendto(socket_ptr,packet,pktsize,0,(struct sockaddr*)&bcast_sockaddr, sizeof bcast_sockaddr);
+    int ret = sendto(socket_ptr,packet,pktsize,0,(struct sockaddr*)&bcast_sockaddr, sizeof bcast_sockaddr);
     if (ret < 0 )
     {
         close(socket_ptr);

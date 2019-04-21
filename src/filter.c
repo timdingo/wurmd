@@ -45,7 +45,7 @@ char * create_pcap_filter(char *dev)
     if (pcap_findalldevs(&pcap_devices, errbuf))
         eprintf(MSG_FAILED_PCAP_FINDDEVS, errbuf);
 
-    short int counter=0;
+    unsigned char multiple_ips_marker = 0;
 
     for (pcap_if_t *d_it=pcap_devices; d_it!=NULL; d_it=d_it->next)
     {
@@ -57,28 +57,28 @@ char * create_pcap_filter(char *dev)
             if(a_it->addr->sa_family != AF_INET)
                 continue; /* we're purposefully ignoring anything except IPv4 */
 
-            if (counter)
+            if (multiple_ips_marker)
             {
                 pcap_filter = s_strcat(&pcap_filter, PCAP_OR);
                 pcap_filter_udp = s_strcat(&pcap_filter_udp,PCAP_OR);
                 pcap_filter_syn = s_strcat(&pcap_filter_syn, PCAP_OR);
-                counter++;
             }
 
             char tcp4_address[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &(((struct sockaddr_in*)a_it->addr)->sin_addr), tcp4_address, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &(((struct sockaddr_in*)a_it->addr)->sin_addr),
+                tcp4_address, INET_ADDRSTRLEN);
             validate_inet_addr(tcp4_address);
 
             pcap_filter_syn = s_strcat(&pcap_filter_syn, PCAP_SRC);
             pcap_filter_syn = s_strcat(&pcap_filter_syn, tcp4_address);
-            pcap_filter_udp = s_strcat(&pcap_filter_udp, PCAP_AND_SRC);
+
+            pcap_filter_udp = s_strcat(&pcap_filter_udp, PCAP_SRC);
             pcap_filter_udp = s_strcat(&pcap_filter_udp, tcp4_address);
 
-            char *tcp4_address_hex = tcp4_dec_to_hex(tcp4_address);
             pcap_filter = s_strcat(&pcap_filter, PCAP_ETHER_28_4);
-            pcap_filter = s_strcat(&pcap_filter, tcp4_address_hex);
+            pcap_filter = s_strcat(&pcap_filter, tcp4_dec_to_hex(tcp4_address));
 
-            free(tcp4_address_hex);
+            multiple_ips_marker = 1;
         }
     }
     pcap_freealldevs(pcap_devices);
@@ -139,7 +139,7 @@ char * create_pcap_filter(char *dev)
 
     /* closing and concatenating everything */
     s_strcat(&pcap_filter, PCAP_DOUBLE_CLOSE);
-    s_strcat(&pcap_filter_udp, PCAP_CLOSE);
+    s_strcat(&pcap_filter_udp, PCAP_DOUBLE_CLOSE);
     s_strcat(&pcap_filter_syn, PCAP_DOUBLE_CLOSE);
 
     s_strcat(&pcap_filter, pcap_filter_udp);

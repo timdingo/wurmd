@@ -20,15 +20,13 @@
 #define FILTER_H
 
 #define PCAP_ARP_AND "(arp and ("
-#define PCAP_UDP_DST_PORT_137 " or (udp dst port 137 "
+#define PCAP_UDP_DST_PORT_137 " or (udp dst port 137 and ("
 #define PCAP_TCP_FLAGS_SYN " or (tcp[tcpflags] == tcp-syn and ("
 #define PCAP_OR " or "
 #define PCAP_SRC "src "
-#define PCAP_AND_SRC "and src "
 #define PCAP_ETHER_28_4 "ether[28:4]="
 #define PCAP_EHTER_38_4 "ether[38:4]="
 #define PCAP_DOUBLE_CLOSE "))"
-#define PCAP_CLOSE ")"
 #define PCAP_DST "dst "
 #define PCAP_CLOSE_AND_OPEN ") and ("
 
