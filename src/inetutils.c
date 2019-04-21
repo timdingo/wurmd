@@ -32,8 +32,6 @@
 #include "include/safermem.h"
 #include "include/system.h"
 
-extern char *cfg_file;
-
 void validate_ethernet_address(const char * ethernet_address)
 {
     regex_t re;
@@ -89,11 +87,8 @@ char * intoa(u_int32_t addr) /* Stolen from tcpdump */
     return cp + 1;
 }
 
-char * get_target_from_packet(u_char *args, const struct pcap_pkthdr *pkthdr, const u_char *packet)
+char * get_target_from_packet(const u_char * packet)
 {
-    UNUSED_ARG(args);
-    UNUSED_ARG(pkthdr);
-
     char *nmptr;
     const struct ether_header *etherhdr;
     etherhdr = (struct ether_header *)(packet);
@@ -177,7 +172,7 @@ char * tcp4_dec_to_hex(const char * tcp4_dec)
     return tcp4_hex;
 }
 
-char * get_ethernet_address_associated_with_target(const char * input)
+char * get_ethernet_address_associated_with_target(const char * input, const char * cfg_file)
 {
     if (str_empty(input))
         eprintf("Comparing something to nothing is no better than dividing by 0!\n");

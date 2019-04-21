@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <limits.h>
 #include <string.h>
 
 #include <netinet/ip.h>
@@ -26,9 +27,7 @@
 #include "include/safermem.h"
 #include "include/system.h"
 
-extern char *cfg_file;
-
-char * create_pcap_filter(char *dev)
+char * create_pcap_filter(char *dev, char *cfg_file)
 {
     pcap_if_t *pcap_devices = s_malloc(sizeof(pcap_if_t));
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -154,12 +153,16 @@ char * create_pcap_filter(char *dev)
     return pcap_filter;
 }
 
-void pcap_loop_callback(u_char *args, const struct pcap_pkthdr *pkthdr, const u_char *packet)
+void pcap_loop_callback(u_char * args, const struct pcap_pkthdr * pkthdr, const u_char * packet)
 {
-    char *target = get_target_from_packet(args, pkthdr, packet);
-    char *ethernet_address = get_ethernet_address_associated_with_target(target);
+    UNUSED_ARG(pkthdr);
+
+    pcap_loop_callback_args_t * callback_args = (pcap_loop_callback_args_t *) args;
+    char * cfg_file = callback_args[0].cfg_file;
+    char * target = get_target_from_packet(packet);
+    char * ethernet_address = get_ethernet_address_associated_with_target(target, cfg_file);
     validate_ethernet_address(ethernet_address);
-    unsigned char *wol_packet = make_wol_payload(ethernet_address);
+    unsigned char * wol_packet = make_wol_payload(ethernet_address);
 
     if (send_packet(wol_packet))
         vprintf(MSG_NO_BROADCAST, ethernet_address);

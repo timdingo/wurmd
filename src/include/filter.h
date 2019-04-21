@@ -30,7 +30,12 @@
 #define PCAP_DST "dst "
 #define PCAP_CLOSE_AND_OPEN ") and ("
 
-char *create_pcap_filter(char *dev);
-void pcap_loop_callback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet);
+char * create_pcap_filter(char * dev, char * cfg_file);
+void pcap_loop_callback(u_char * args, const struct pcap_pkthdr * packet_header, const u_char * packet);
+
+typedef struct pcap_loop_callback_args
+{
+    char * cfg_file;
+} pcap_loop_callback_args_t;
 
 #endif

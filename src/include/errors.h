@@ -45,9 +45,9 @@
 #define MSG_FAILED_BCAST_FLAG "Couldn't set broadcast flag on socket."
 #define MSG_ARGUMENT_CANNOT_BE_EMPTY "Value for argument -%s cannot be an empty string.\n"
 #define MSG_COULD_NOT_ITERATE_DEVICES "Couldn't list all devices: %s."
+#define MSG_NEEDS_CFG_FILE "%s needs a config file to run.\n%s"
 
-extern char *cfg_file;
-extern char *log_file;
+extern char * log_file;
 extern short int verbose, debug, background;
 
 #define eprintf(format, ...)\

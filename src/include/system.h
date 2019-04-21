@@ -19,12 +19,15 @@
 
 #include <fcntl.h>
 
+#define UNUSED_ARG(x) (void)(x)
+
 #define LCKFD ".wurmd.lck"
 #define CONFIG_READ_BUFFER 96 // ipv4 + mac + netbios name
 #define IFNAMSIZ 16 // From Linux' include/uapi/linux/if.h
 #define TCP4ADDRSIZ 15
 #define TCP4ADDRSIZHEX 11
 #define NBADDRSIZE 17
+#define NBNS_NAME_MAX 16
 #define ARPADDRSIZ 18
 #define LOGFILE "/var/log/wurmd.log"
 

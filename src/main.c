@@ -43,6 +43,7 @@ static char lusage[] =
 
 #include <linux/limits.h>
 #include <pcap/pcap.h>
+#include <sys/types.h>
 
 #include "include/errors.h"
 #include "include/filter.h"
@@ -50,15 +51,16 @@ static char lusage[] =
 #include "include/safermem.h"
 #include "include/system.h"
 
-char *cfg_file;
-char *log_file=NULL;
 short int verbose = 0, debug = 0, background = 1;
+char *log_file = NULL;
 
 int main(int argc, char *argv[])
 {    
     char *inet_device = NULL;
     char *ethernet_address = NULL;
     int c = 0;
+
+    char *cfg_file = NULL;
 
 	while ((c = getopt (argc, argv, "fdvhl:i:c:o:")) != -1)
 
@@ -87,7 +89,14 @@ int main(int argc, char *argv[])
                 }
                 break;
             case 'c':
-                cfg_file=optarg;
+                cfg_file = s_malloc(PATH_MAX);
+                strcpy(cfg_file, optarg);
+                if (str_empty(cfg_file))
+                {
+                    fprintf(stderr, MSG_NEEDS_CFG_FILE, argv[0], usage);
+                    free(cfg_file);
+                    exit(-1);
+                }
                 break;
             case 'f':
                 background = 0;
@@ -155,13 +164,6 @@ int main(int argc, char *argv[])
         return(0);
 	}
 
-    if (str_empty(cfg_file))
-    {
-        eprintf("%s needs a config file to run.\n%s", argv[0], usage);
-        free(cfg_file);
-        return(-1);
-    }
-
     FILE *cfg_fp = fopen(cfg_file, "r"); // TODO: this still validates "./"
     if(cfg_fp == NULL)
     {
@@ -201,7 +203,7 @@ int main(int argc, char *argv[])
     if (pcap_lookupnet(inet_device, &net, &mask, errbuf) == -1)
         eprintf("Couldn't get ip address for device %s", errbuf);
 
-    char * pcap_filter = create_pcap_filter(inet_device);
+    char * pcap_filter = create_pcap_filter(inet_device, cfg_file);
 
     pcap_t *pcap_session_handle = pcap_open_live(
         inet_device,
@@ -230,7 +232,10 @@ int main(int argc, char *argv[])
     vprintf("Working the magic on %s", inet_device);
 
     const int packet_capture_amount = -1; // unlimited
-    pcap_loop(pcap_session_handle, packet_capture_amount, pcap_loop_callback, NULL);
+    pcap_loop_callback_args_t callback_args = { cfg_file };
+    u_char * args = (u_char *) & callback_args;
+
+    pcap_loop(pcap_session_handle, packet_capture_amount, pcap_loop_callback, args);
 
     free(pcap_session_handle);
     free(inet_device);
