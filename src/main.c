@@ -234,8 +234,15 @@ int main(int argc, char *argv[])
     const int packet_capture_amount = -1; // unlimited
     pcap_loop_callback_args_t callback_args = { cfg_file };
     u_char * args = (u_char *) & callback_args;
+    int pcap_loop_ret = 0;
 
-    pcap_loop(pcap_session_handle, packet_capture_amount, pcap_loop_callback, args);
+    do
+    {
+        pcap_loop_ret = pcap_loop(pcap_session_handle, packet_capture_amount, pcap_loop_callback, args);
+        vprintf("pcap_loop_ret: %d, pcap_geterr: %s", pcap_loop_ret, pcap_geterr(pcap_session_handle));
+    }
+    while(pcap_loop_ret); // can never get 0 as packet_capture_amount can never get exhausted nor are we
+                          // reading from a pcap recorded file as per PCAP_LOOP(3PCAP) man page.
 
     free(pcap_session_handle);
     free(inet_device);
