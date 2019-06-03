@@ -20,6 +20,7 @@
 #include <fcntl.h>
 
 #define UNUSED_ARG(x) (void)(x)
+#define UNUSED_COND(x) (void)(x)
 
 #define LCKFD ".wurmd.lck"
 #define CONFIG_READ_BUFFER 96 // ipv4 + mac + netbios name
@@ -30,6 +31,7 @@
 #define NBNS_NAME_MAX 16
 #define ARPADDRSIZ 18
 #define LOGFILE "/var/log/wurmd.log"
+#define PID_STR 5
 
 void daemonize(void);
 char * get_lockfile(void);

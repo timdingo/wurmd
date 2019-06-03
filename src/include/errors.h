@@ -18,6 +18,7 @@
 #define ERRORS_H
 
 #include <stdio.h>
+#include <syslog.h>
 #include <time.h>
 
 #define MSG_HOST_CFG "No hosts configured in the configuration file."
@@ -46,66 +47,109 @@
 #define MSG_ARGUMENT_CANNOT_BE_EMPTY "Value for argument -%s cannot be an empty string.\n"
 #define MSG_COULD_NOT_ITERATE_DEVICES "Couldn't list all devices: %s."
 #define MSG_NEEDS_CFG_FILE "%s needs a config file to run.\n%s"
+#define MSG_WORKING_ON "Working the magic on %s."
+#define MSG_FAILED_FILTER_INSTALL "Couldn't install filter %s: %s."
+#define MSG_PCAP_FILTER "Pcap filter: %s."
+#define MSG_FAILED_PCAP_FILTER_PARSE "Couldn't parse filter %s: %s."
+#define MSG_OPEN_DEVICE_FAILED "Couldn't open device %s: %s."
+#define MSG_GET_IP_ADDR_FAILED "Couldn't get ip address for device %s."
+#define MSG_NO_INTERFACE_PROVIDED "No interface option provided, using %s."
+#define MSG_NO_DEFAULT_DEVICE "Couldn't find default device: %s."
+#define MSG_OPEN_CONF_FAILED "Can't open config file %s: %s.\n"
+#define MSG_OPEN_FILE_APPEND "Can't open file %s for appending: %s.\n"
+#define MSG_SHUTTING_DOWN "Shutting down."
+#define MSG_PCAP_LOOP_RET "pcap_loop_ret: %d, pcap_geterr: %s"
+#define MSG_COMPARE_TO_NOTHING "Comparing something to nothing is no better than dividing by 0!"
 
 extern char * log_file;
 extern short int verbose, debug, background;
 
-#define eprintf(format, ...)\
-    do{\
-        fprintf(stderr, format, ##__VA_ARGS__);\
-        fprintf(stderr, "\n");\
-        FILE *ptr=fopen(log_file, "a+");\
-        time_t tt=time(NULL);\
-        char *t=ctime(&tt);\
-        t[strlen(t)-1]=0;\
-        fprintf(ptr,"%s - Error: ", t);\
-        fprintf(ptr,format,##__VA_ARGS__);\
+#define EPRINTF(format, ...)\
+{\
+    fprintf(stderr, format, ##__VA_ARGS__);\
+    fprintf(stderr, "\n");\
+    FILE *ptr = fopen(log_file, "a+");\
+    if ( ptr == NULL )\
+    {\
+        openlog("wurmd", LOG_PID|LOG_CONS|LOG_NDELAY, LOG_USER);\
+        syslog(LOG_ERR, format, ##__VA_ARGS__);\
+        closelog();\
+    }\
+    else\
+    {\
+        time_t tt = time(NULL);\
+        char *t = ctime(&tt);\
+        t[strlen(t) - 1] = 0;\
+        fprintf(ptr, "%s - Error: ", t);\
+        fprintf(ptr, format, ##__VA_ARGS__);\
         fprintf(ptr, "\n");\
         fclose(ptr);\
-        exit(-1);\
+        exit(1);\
     }\
-    while(0)
+};
 
-#define vprintf(format, ...)\
-    do{\
-        if(verbose||debug){\
-            if (!background) {\
-                fprintf(stdout,format,##__VA_ARGS__);\
-                fprintf(stdout, "\n");\
+#define VPRINTF(format, ...)\
+{\
+    if(verbose || debug)\
+    {\
+        if (!background)\
+        {\
+            fprintf(stdout, format, ##__VA_ARGS__);\
+            fprintf(stdout, "\n");\
+        }\
+        else\
+        {\
+            FILE *ptr=fopen(log_file,"a+");\
+            if ( ptr == NULL )\
+            {\
+                openlog("wurmd", LOG_PID|LOG_CONS|LOG_NDELAY, LOG_USER);\
+                syslog(LOG_INFO, format, ##__VA_ARGS__);\
+                closelog();\
             }\
-            else {\
-                FILE *ptr=fopen(log_file,"a+");\
+            else\
+            {\
                 time_t tt=time(NULL);\
                 char *t=ctime(&tt);\
-                t[strlen(t)-1]=0;\
-                fprintf(ptr,"%s - Info: ",t);\
-                fprintf(ptr,format,##__VA_ARGS__);\
+                t[strlen(t) - 1] = 0;\
+                fprintf(ptr, "%s - Info: ", t);\
+                fprintf(ptr, format, ##__VA_ARGS__);\
                 fprintf(ptr, "\n");\
                 fclose(ptr);\
             }\
         }\
     }\
-    while(0)
+};
 
-#define dprintf(format, ...)\
-    do{\
-        if(debug){\
-            if (!background) {\
-                fprintf(stdout,format,##__VA_ARGS__);\
-                fprintf(stdout, "\n");\
+#define DPRINTF(format, ...)\
+{\
+    if(debug)\
+    {\
+        if (!background)\
+        {\
+            fprintf(stdout, format, ##__VA_ARGS__);\
+            fprintf(stdout, "\n");\
+        }\
+        else\
+        {\
+            FILE *ptr = fopen(log_file, "a+");\
+            if ( ptr == NULL )\
+            {\
+                openlog("wurmd", LOG_PID|LOG_CONS|LOG_NDELAY, LOG_USER);\
+                syslog(LOG_DEBUG, format, ##__VA_ARGS__);\
+                closelog();\
             }\
-            else {\
-                FILE *ptr=fopen(log_file,"a+");\
-                time_t tt=time(NULL);\
-                char *t=ctime(&tt);\
-                t[strlen(t)-1]=0;\
-                fprintf(ptr,"%s - Debug: ",t);\
-                fprintf(ptr,format,##__VA_ARGS__);\
+            else\
+            {\
+                time_t tt = time(NULL);\
+                char *t = ctime(&tt);\
+                t[strlen(t) - 1] = 0;\
+                fprintf(ptr, "%s - Debug: ", t);\
+                fprintf(ptr, format, ##__VA_ARGS__);\
                 fprintf(ptr, "\n");\
                 fclose(ptr);\
             }\
         }\
     }\
-    while(0)
+}
 
 #endif

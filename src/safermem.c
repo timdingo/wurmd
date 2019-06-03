@@ -26,20 +26,20 @@ void * s_malloc(size_t size)
      *       and nearly every s_malloc() called assumes so. */
     void *ptr = malloc(size);
     if (ptr == NULL) // check this: void* compare to NULL ?!
-        eprintf(MSG_MALLOC_FAILED);
+        EPRINTF(MSG_MALLOC_FAILED);
     return ptr;
 }
 
-size_t s_strlen(const char *string)
+size_t s_strlen(const char * string)
 {
     return (strlen(string) + 1);
 }
 
-char * s_strcat(char **target, char *append)
+char * s_strcat(char ** target, const char * append)
 {
-    *target = realloc(*target, strlen(*target) + s_strlen(append));
+    * target = realloc(* target, strlen(* target) + s_strlen(append));
     if (target == NULL)
-        eprintf(MSG_MALLOC_FAILED);
-    strcat(*target, append);
-    return *target;
+        EPRINTF(MSG_MALLOC_FAILED);
+    strcat(* target, append);
+    return * target;
 }

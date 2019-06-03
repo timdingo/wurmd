@@ -27,7 +27,7 @@
 #include "include/safermem.h"
 #include "include/system.h"
 
-char * create_pcap_filter(char *dev, char *cfg_file)
+char * create_pcap_filter(const char * dev, const char * cfg_file)
 {
     pcap_if_t *pcap_devices = s_malloc(sizeof(pcap_if_t));
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -42,7 +42,7 @@ char * create_pcap_filter(char *dev, char *cfg_file)
     strcpy(pcap_filter_syn, PCAP_TCP_FLAGS_SYN);
 
     if (pcap_findalldevs(&pcap_devices, errbuf))
-        eprintf(MSG_FAILED_PCAP_FINDDEVS, errbuf);
+        EPRINTF(MSG_FAILED_PCAP_FINDDEVS, errbuf);
 
     unsigned char multiple_ips_marker = 0;
 
@@ -68,14 +68,14 @@ char * create_pcap_filter(char *dev, char *cfg_file)
                 tcp4_address, INET_ADDRSTRLEN);
             validate_inet_addr(tcp4_address);
 
-            pcap_filter_syn = s_strcat(&pcap_filter_syn, PCAP_SRC);
-            pcap_filter_syn = s_strcat(&pcap_filter_syn, tcp4_address);
+            pcap_filter_syn = s_strcat(& pcap_filter_syn, PCAP_SRC);
+            pcap_filter_syn = s_strcat(& pcap_filter_syn, tcp4_address);
 
-            pcap_filter_udp = s_strcat(&pcap_filter_udp, PCAP_SRC);
-            pcap_filter_udp = s_strcat(&pcap_filter_udp, tcp4_address);
+            pcap_filter_udp = s_strcat(& pcap_filter_udp, PCAP_SRC);
+            pcap_filter_udp = s_strcat(& pcap_filter_udp, tcp4_address);
 
-            pcap_filter = s_strcat(&pcap_filter, PCAP_ETHER_28_4);
-            pcap_filter = s_strcat(&pcap_filter, tcp4_dec_to_hex(tcp4_address));
+            pcap_filter = s_strcat(& pcap_filter, PCAP_ETHER_28_4);
+            pcap_filter = s_strcat(& pcap_filter, tcp4_dec_to_hex(tcp4_address));
 
             multiple_ips_marker = 1;
         }
@@ -87,11 +87,11 @@ char * create_pcap_filter(char *dev, char *cfg_file)
     char * tcp4_address = s_malloc(TCP4ADDRSIZ);
     char * ethernet_address = s_malloc(ARPADDRSIZ);
 
-    FILE *fp;
+    FILE * fp;
     fp = fopen(cfg_file, "r");
 
-    if(fp==NULL)
-        eprintf(MSG_FAILED_CONFIG_OPEN, cfg_file);
+    if(fp == NULL)
+        EPRINTF(MSG_FAILED_CONFIG_OPEN, cfg_file);
 
     s_strcat(&pcap_filter, PCAP_CLOSE_AND_OPEN);
     s_strcat(&pcap_filter_syn, PCAP_CLOSE_AND_OPEN);
@@ -129,9 +129,9 @@ char * create_pcap_filter(char *dev, char *cfg_file)
             config_entry=1;
     }
 
-    if (!config_entry)
+    if (! config_entry)
     {
-        eprintf(MSG_HOST_CFG);
+        EPRINTF(MSG_HOST_CFG);
     }
 
     fclose(fp);
@@ -153,21 +153,30 @@ char * create_pcap_filter(char *dev, char *cfg_file)
     return pcap_filter;
 }
 
-void pcap_loop_callback(u_char * args, const struct pcap_pkthdr * pkthdr, const u_char * packet)
+void pcap_loop_callback(u_char * args, const struct pcap_pkthdr * pkthdr,
+    const u_char * packet)
 {
     UNUSED_ARG(pkthdr);
 
     pcap_loop_callback_args_t * callback_args = (pcap_loop_callback_args_t *) args;
     char * cfg_file = callback_args[0].cfg_file;
     char * target = get_target_from_packet(packet);
-    char * ethernet_address = get_ethernet_address_associated_with_target(target, cfg_file);
+    if (target == NULL)
+        return;
+    char * ethernet_address = get_ethernet_address_associated_with_target(
+        target, cfg_file);
     validate_ethernet_address(ethernet_address);
     unsigned char * wol_packet = make_wol_payload(ethernet_address);
 
     if (send_packet(wol_packet))
-        vprintf(MSG_NO_BROADCAST, ethernet_address);
+    {
+        VPRINTF(MSG_NO_BROADCAST, ethernet_address);
+    }
+    else
+    {
+        VPRINTF(MSG_WOL_BROADCAST, ethernet_address);
+    }
 
     free(wol_packet);
-    vprintf(MSG_WOL_BROADCAST, ethernet_address);
     free(ethernet_address);
 }

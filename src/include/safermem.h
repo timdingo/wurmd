@@ -20,7 +20,7 @@
 #include <stdlib.h>
 
 /* slighlty safer versions of existing stdlib functions */
-void *s_malloc(size_t size);
+void * s_malloc(size_t size);
 size_t s_strlen(const char * string);
-char *s_strcat (char ** target, char * append);
+char * s_strcat (char ** target, const char * append);
 #endif

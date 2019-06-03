@@ -19,7 +19,8 @@
 #ifndef FILTER_H
 #define FILTER_H
 
-#define PCAP_ARP_AND "(arp and ("
+// arp [6:2] = 1 -> arp.opcode 1 (request)
+#define PCAP_ARP_AND "(arp and (arp [6:2] = 1) and ("
 #define PCAP_UDP_DST_PORT_137 " or (udp dst port 137 and ("
 #define PCAP_TCP_FLAGS_SYN " or (tcp[tcpflags] == tcp-syn and ("
 #define PCAP_OR " or "
@@ -30,7 +31,7 @@
 #define PCAP_DST "dst "
 #define PCAP_CLOSE_AND_OPEN ") and ("
 
-char * create_pcap_filter(char * dev, char * cfg_file);
+char * create_pcap_filter(const char * dev, const char * cfg_file);
 void pcap_loop_callback(u_char * args, const struct pcap_pkthdr * packet_header, const u_char * packet);
 
 typedef struct pcap_loop_callback_args

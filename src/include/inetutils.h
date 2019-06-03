@@ -26,12 +26,12 @@
 #define AR_TPA(ap)	(((const u_char *)((ap)+1))+2*(ap)->ar_hln+(ap)->ar_pln)
 #define PCAP_VALIDATE_MAC_ADDRESS "^\\([0-9a-fA-F]\\{2\\}:\\)\\{5\\}[0-9a-fA-F]\\{2\\}$"
 
-int send_packet(unsigned char * packet);
+int send_packet(const unsigned char * packet);
 char * tcp4_dec_to_hex(const char * tcp4_address);
 char * get_target_from_packet(const u_char * packet);
 char * get_ethernet_address_associated_with_target(const char * input, const char * cfg_file);
-unsigned char * make_wol_payload(char * aeaddr);
-void send_wol_packet(char * ethernet_address);
+unsigned char * make_wol_payload(const char * aeaddr);
+void send_wol_packet(const char * ethernet_address);
 void validate_ethernet_address(const char * ethernet_address);
 void validate_inet_addr(const char * taddr);
 char * intoa(u_int32_t addr);

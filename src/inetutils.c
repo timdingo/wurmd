@@ -39,13 +39,13 @@ void validate_ethernet_address(const char * ethernet_address)
     if(regcomp(&re, PCAP_VALIDATE_MAC_ADDRESS, 0) != 0)
     {
         regfree(&re);
-        eprintf(MSG_FAILED_REGEX_COMPILE);
+        EPRINTF(MSG_FAILED_REGEX_COMPILE);
     }
 
     if(regexec(&re, ethernet_address, 0, NULL, 0) != 0)
     {
         regfree(&re);
-        eprintf(MSG_INVALID_ETHERNET, ethernet_address);
+        EPRINTF(MSG_INVALID_ETHERNET, ethernet_address);
     }
 
     regfree(&re);
@@ -55,7 +55,7 @@ void validate_inet_addr(const char * inet_address)
 {
     struct in_addr tcstr;
     if (!inet_aton(inet_address, &tcstr))
-        eprintf(MSG_INVALID_IP, inet_address);
+        EPRINTF(MSG_INVALID_IP, inet_address);
 }
 
 char * intoa(u_int32_t addr) /* Stolen from tcpdump */
@@ -89,8 +89,8 @@ char * intoa(u_int32_t addr) /* Stolen from tcpdump */
 
 char * get_target_from_packet(const u_char * packet)
 {
-    char *nmptr;
-    const struct ether_header *etherhdr;
+    char * nmptr = NULL;
+    const struct ether_header * etherhdr;
     etherhdr = (struct ether_header *)(packet);
     const struct ip * ip;
     ip = (struct ip *)(packet + sizeof(struct ether_header));
@@ -100,25 +100,26 @@ char * get_target_from_packet(const u_char * packet)
     nbnshdr = (struct nbnshdr *)(packet + sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr));
 
     /* Based on the PCAP filter we define 3 scenarios here:
-     *  - ARP packet with ARP OP code of 256
+     *  - ARP packet with ARP OP code of (short u_int) 256 (request)
      *  - UDP packet with a destination of 137 and an NetBIOS OP code of 4097 (NM name request)
      *  - IPV4 SYN packet
      */
 
     if (ntohs(etherhdr->ether_type) == ETHERTYPE_ARP)
     {
-        struct arphdr* arp_header = (struct arphdr*)(packet + sizeof(struct ether_header));
+        struct arphdr * arp_header = (struct arphdr *)(packet + sizeof(struct ether_header));
+        // double checking ARP request status
         if (arp_header->ar_op == 256)
         {
             u_int32_t addr;
-            memcpy(&addr, AR_TPA(arp_header), sizeof(addr));
-            nmptr=intoa(addr);
-            vprintf(MSG_ARP_REQUEST, nmptr);
+            memcpy(& addr, AR_TPA(arp_header), sizeof(addr));
+            nmptr = intoa(addr);
+            VPRINTF(MSG_ARP_REQUEST, nmptr);
         }
         else
         {
             /* satisfying static analysis on above conditional and nmptr */
-            exit(-1);
+            UNUSED_COND(packet);
         }
     }
     else if (ip->ip_p == IPPROTO_UDP && ntohs(udphdr->dest) == 137 && nbnshdr->opcode == 4097)
@@ -139,7 +140,7 @@ char * get_target_from_packet(const u_char * packet)
             nbnsdata++;
             databuf = *nbnsdata;
             if (databuf=='\0' || databuf < 'A' || databuf > 'Z' )
-                eprintf(MSG_MALFORMED_NBNS);
+                EPRINTF(MSG_MALFORMED_NBNS);
             databuf -= 'A';
             datanbuf= databuf | datanbuf;
             nbnsdata++;
@@ -150,24 +151,24 @@ char * get_target_from_packet(const u_char * packet)
         }
         nbnsaddrbuf[idx] = '\0';
         nmptr = nbnsaddrbuf;
-        vprintf(MSG_NBNS_REQUEST, nmptr);
+        VPRINTF(MSG_NBNS_REQUEST, nmptr);
     }
     else
     {
         char taddrbuf[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &(ip->ip_dst), taddrbuf, INET_ADDRSTRLEN);
         nmptr = taddrbuf;
-        vprintf(MSG_TCP_INIT, nmptr);
+        VPRINTF(MSG_TCP_INIT, nmptr);
     }
     return nmptr;
 }
 
 char * tcp4_dec_to_hex(const char * tcp4_dec)
 {
-    char *tcp4_hex = s_malloc(TCP4ADDRSIZHEX);
+    char * tcp4_hex = s_malloc(TCP4ADDRSIZHEX);
     uint tcp4_oct_0, tcp4_oct_1, tcp4_oct_2, tcp4_oct_3;
-    if (sscanf(tcp4_dec, "%u.%u.%u.%u", &tcp4_oct_0, &tcp4_oct_1, &tcp4_oct_2, &tcp4_oct_3) != 4)
-        eprintf(MSG_COULD_NOT_CONVERT_ADDRESS, tcp4_dec);
+    if (sscanf(tcp4_dec, "%u.%u.%u.%u", & tcp4_oct_0, & tcp4_oct_1, & tcp4_oct_2, & tcp4_oct_3) != 4)
+        EPRINTF(MSG_COULD_NOT_CONVERT_ADDRESS, tcp4_dec);
     snprintf(tcp4_hex, 11, "0x%.2x%.2x%.2x%.2x", tcp4_oct_0, tcp4_oct_1, tcp4_oct_2, tcp4_oct_3);
     return tcp4_hex;
 }
@@ -175,7 +176,7 @@ char * tcp4_dec_to_hex(const char * tcp4_dec)
 char * get_ethernet_address_associated_with_target(const char * input, const char * cfg_file)
 {
     if (str_empty(input))
-        eprintf("Comparing something to nothing is no better than dividing by 0!\n");
+        EPRINTF(MSG_COMPARE_TO_NOTHING);
 
     char * bfr = s_malloc(CONFIG_READ_BUFFER);
     char * tcp4_address = s_malloc(TCP4ADDRSIZ);
@@ -185,12 +186,13 @@ char * get_ethernet_address_associated_with_target(const char * input, const cha
 
     fp = fopen(cfg_file, "r");
     if(fp == NULL)
-        eprintf(MSG_FAILED_CONFIG_OPEN, cfg_file);
+        EPRINTF(MSG_FAILED_CONFIG_OPEN, cfg_file);
 
     while(fgets(bfr, CONFIG_READ_BUFFER, fp) != NULL)
     {
         if (!strncmp(bfr, "#", 1) || !strncmp(bfr, "\n", 1))
             continue;
+
         sscanf(bfr, "%s %s %s", tcp4_address, ethernet_address, nbaddr);
 
         if (!strcmp(tcp4_address, input))
@@ -205,10 +207,10 @@ char * get_ethernet_address_associated_with_target(const char * input, const cha
     return ethernet_address;
 }
 
-unsigned char * make_wol_payload(char * aeaddr)
+unsigned char * make_wol_payload(const char * aeaddr)
 {
-    unsigned char *payload = s_malloc(102); //6+(16*6) bytes
-    struct ether_addr *ethernet_address;
+    unsigned char * payload = s_malloc(102); //6+(16*6) bytes
+    struct ether_addr * ethernet_address;
     ethernet_address = ether_aton(aeaddr);
 
     memset(payload, 0xff, 6);
@@ -219,26 +221,27 @@ unsigned char * make_wol_payload(char * aeaddr)
     return payload;
 }
 
-int send_packet(unsigned char *packet)
+int send_packet(const unsigned char * packet)
 {
-    const char *bcastinet="255.255.255.255";
+    const char * bcastinet = "255.255.255.255";
     const int portnr = 9;
     const int pktsize = (102);
     int socket_ptr = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (socket_ptr < 0)
-        eprintf(MSG_FAILED_SOCK_INIT);
+        EPRINTF(MSG_FAILED_SOCK_INIT);
     int enbcast = 1;
-    if (setsockopt(socket_ptr,SOL_SOCKET,SO_BROADCAST, &enbcast, sizeof(enbcast)))
+    if (setsockopt(socket_ptr, SOL_SOCKET, SO_BROADCAST, & enbcast, sizeof(enbcast)))
     {
         close(socket_ptr);
-        eprintf(MSG_FAILED_BCAST_FLAG);
+        EPRINTF(MSG_FAILED_BCAST_FLAG);
     }
     struct sockaddr_in bcast_sockaddr;
     memset(&bcast_sockaddr, 0, sizeof(bcast_sockaddr));
     bcast_sockaddr.sin_family = AF_INET;
-    inet_pton(AF_INET, bcastinet , &bcast_sockaddr.sin_addr);
+    inet_pton(AF_INET, bcastinet, & bcast_sockaddr.sin_addr);
     bcast_sockaddr.sin_port = htons(portnr);
-    int ret = sendto(socket_ptr,packet,pktsize,0,(struct sockaddr*)&bcast_sockaddr, sizeof bcast_sockaddr);
+    ssize_t ret = sendto(socket_ptr, packet, pktsize, 0,
+        (struct sockaddr *) & bcast_sockaddr, sizeof bcast_sockaddr);
     if (ret < 0 )
     {
         close(socket_ptr);

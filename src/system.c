@@ -49,9 +49,9 @@ void daemonize(void)
     }
     if ((chdir(curdir)) < 0)
     {
-        eprintf(MSG_CHANGE_CURDIR, curdir);
+        EPRINTF(MSG_CHANGE_CURDIR, curdir);
     }
-    dprintf(MSG_CURDIR, curdir);
+    DPRINTF(MSG_CURDIR, curdir);
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
 }
@@ -60,7 +60,7 @@ char * get_lockfile(void)
 {
     char * bspth = getenv("HOME");
     if (bspth == NULL || bspth[0] != '/')
-        eprintf(MSG_NO_HOMEDIR);
+        EPRINTF(MSG_NO_HOMEDIR);
     char * lockfile = s_malloc(strlen(bspth) + (sizeof("/"LCKFD)));
     strcpy(lockfile, bspth);
     s_strcat(&lockfile, "/"LCKFD);
@@ -78,10 +78,10 @@ int set_lock(char * lockfile)
 
     fd = open(lockfile, O_RDWR|O_CREAT, 0600);
     if (fd == -1)
-        eprintf(MSG_NO_LOCKFILE);
+        EPRINTF(MSG_NO_LOCKFILE);
 
     if (fcntl(fd, F_SETLK, &fdfl) == -1)
-        eprintf(MSG_NOT_SINGLE_INSTANCE);
+        EPRINTF(MSG_NOT_SINGLE_INSTANCE);
 
     return fd;
 }
@@ -89,14 +89,12 @@ int set_lock(char * lockfile)
 void signal_handler(int sig)
 {
     signal(sig, SIG_IGN);
-    vprintf(MSG_SIGNAL_SIGINT);
+    VPRINTF(MSG_SIGNAL_SIGINT);
 	exit(0);
 }
 
 pid_t get_pid_of_process(char * process)
 {
-#define PID_STR 5
-
     pid_t pid = -1;
     char * process_line = s_malloc(PID_STR);
     FILE * cmd = popen(process, "r");
