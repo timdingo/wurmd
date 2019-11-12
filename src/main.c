@@ -1,7 +1,7 @@
 static char version[]=
 "Version 20190603 - Timothy Demulder <timothy@syphzero.net> - https://github.com/timdingo/wurmd/";
 static char usage[] =
-"usage: wurmd [-o <mac>] [-i <ifname>] [-fvd] [-l <config file>] -c <config file>";
+"usage: wurmd [-o <mac>] [-i <ifname>] [-fvd] [-l <log file>] -c <config file>";
 static char lusage[] =
 "This daemon generates and transmits Wake-On-Lan (WoL) packets\n"
 "to configured hosts based on networking events in an attempt to\n"
